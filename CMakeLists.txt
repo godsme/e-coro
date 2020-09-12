@@ -19,4 +19,4 @@ include_directories(
 
 add_executable(e_coro_test
         third-party/catch.hpp
-        test/catch.cpp test/test_task.cpp)
+        test/catch.cpp test/test_task.cpp include/e-coro/core/sync_wait_task.h include/e-coro/core/awaitable_trait.h)

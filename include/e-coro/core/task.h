@@ -21,8 +21,9 @@ namespace detail {
       struct final_awaitable {
          auto await_ready() const noexcept { return false; }
          template<typename P> requires std::is_base_of_v<task_promise_base, P>
-         auto await_suspend(std::coroutine_handle<P> handle) noexcept {
-            return handle.promise().continuation_;
+         auto await_suspend(std::coroutine_handle<P> self) noexcept {
+            // i'm done here, return the execution to caller.
+            return self.promise().caller_;
          }
          auto await_resume() noexcept {}
       };
@@ -36,11 +37,11 @@ namespace detail {
          return final_awaitable{};
       }
 
-      auto set_continuation(std::coroutine_handle<> continuation) {
-         continuation_ = continuation;
+      auto save_caller(std::coroutine_handle<> caller) {
+         caller_ = caller;
       }
    private:
-      std::coroutine_handle<> continuation_;
+      std::coroutine_handle<> caller_;
    };
 
    template<typename T>
@@ -80,7 +81,7 @@ namespace detail {
    };
 }
 
-template <typename T>
+template <typename T = void>
 struct [[nodiscard("it will be destroyed automatically otherwise")]] task {
    using promise_type = detail::task_promise<T>;
 
@@ -95,7 +96,10 @@ private:
       }
 
       auto await_suspend(std::coroutine_handle<> caller) noexcept {
-         self_.promise().set_continuation(caller);
+         // When caller awaits me, if I'm not done yet, caller will be suspended.
+         // Save my caller so that it will be resumed after I'm done.
+         self_.promise().save_caller(caller);
+         // i'm gonna be resumed.
          return self_;
       }
 
@@ -126,27 +130,30 @@ public:
       }
    }
 
+   // caller awaits me, and i'm a lvalue-reference
    auto operator co_await() const& noexcept {
       struct awaitable : awaitable_base {
          using awaitable_base::awaitable_base;
          auto await_resume() noexcept -> decltype(auto) {
-            return self_.promise().result();
+            return awaitable_base::self_.promise().result();
          }
       };
 
       return awaitable{ self_ };
    }
 
+   // caller awaits me, and i'm a rvalue-reference
    auto operator co_await() const&& noexcept {
       struct awaitable : awaitable_base {
          using awaitable_base::awaitable_base;
          auto await_resume() noexcept -> decltype(auto) {
-            return std::move(self_.promise()).result();
+            return std::move(awaitable_base::self_.promise()).result();
          }
       };
 
       return awaitable{ self_ };
    }
+
 
 private:
    handle_type self_;
