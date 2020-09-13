@@ -198,10 +198,8 @@ namespace {
       SECTION("r-value fmap / l-value lambda") {
          using namespace std::string_literals;
 
-         auto t = [&]
-         {
-            auto f = [prefix = "pfx"s](int x)
-            {
+         auto t = [&] {
+            auto f = [prefix = "pfx"s](int x) {
                return prefix + std::to_string(x);
             };
 
@@ -217,10 +215,9 @@ namespace {
          using namespace std::string_literals;
 
          auto t = [&] {
-            auto addprefix = fmap([prefix = "a really really long prefix that prevents small string optimisation"s](int x)
-                                  {
-                                     return prefix + std::to_string(x);
-                                  });
+            auto addprefix = fmap(
+               [prefix = "a really really long prefix that prevents small string optimisation"s](int x) {
+                  return prefix + std::to_string(x); });
 
             // Want to make sure that the resulting awaitable has taken
             // a copy of the lambda passed to fmap().
@@ -251,5 +248,43 @@ namespace {
 
          REQUIRE(sync_wait(t) == "a really really long prefix that prevents small string optimisation1");
       }
+   }
+
+   TEST_CASE("chained fmap pipe operations") {
+      using namespace std::string_literals;
+      using e_coro::task;
+      using e_coro::sync_wait;
+
+      auto prepend = [](std::string s) {
+         return e_coro::fmap([s = std::move(s)](const std::string& value) { return s + value; });
+      };
+
+      auto append = [](std::string s) {
+         return e_coro::fmap([s = std::move(s)](const std::string& value){ return value + s; });
+      };
+
+      auto async_string = [](std::string s) -> task<std::string> {
+         co_return std::move(s);
+      };
+
+      auto t = async_string("base"s) | prepend("pre_"s) | append("_post"s);
+
+      CHECK(sync_wait(t) == "pre_base_post");
+   }
+
+   TEST_CASE("lots of synchronous completions doesn't result in stack-overflow") {
+      auto completes_synchronously = []() -> e_coro::task<int> {
+         co_return 1;
+      };
+
+      auto run = [&]() -> e_coro::task<> {
+         int sum = 0;
+         for (std::size_t i = 0; i < 10'000'000; ++i) {
+            sum += co_await completes_synchronously();
+         }
+         CHECK(sum == 10'000'000);
+      };
+
+      e_coro::sync_wait(run());
    }
 }

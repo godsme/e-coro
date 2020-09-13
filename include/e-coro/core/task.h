@@ -202,7 +202,7 @@ namespace detail {
 }
 
 template<typename A>
-auto make_task(A awaitable) -> task<await_result_t<A>> {
+auto make_task(A awaitable) -> task<detail::remove_rvalue_reference_t<await_result_t<A>>> {
    co_return co_await static_cast<A&&>(awaitable);
 }
 
