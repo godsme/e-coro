@@ -20,8 +20,8 @@ inline auto when_all_ready(Xs&&... xs) {
          std::tuple<
             detail::when_all_task<
                await_result_t<std::decay_t<Xs>>>...>>;
-   return result_t(
-      std::make_tuple(detail::make_when_all_task(std::forward<Xs>(xs))...));
+   return result_t{
+      std::make_tuple(detail::make_when_all_task(std::forward<Xs>(xs))...)};
 }
 
 E_CORO_NS_END

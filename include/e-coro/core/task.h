@@ -9,6 +9,7 @@
 #include <coroutine>
 #include <concepts>
 #include <optional>
+#include "awaitable_trait.h"
 
 E_CORO_NS_BEGIN
 
@@ -116,6 +117,8 @@ private:
    };
 
 public:
+   task() = default;
+
    explicit task(handle_type handle) noexcept
       : self_{handle}
    {}
@@ -158,6 +161,10 @@ public:
       return awaitable{ self_ };
    }
 
+   auto is_ready() const noexcept {
+      return !self_ || self_.done();
+   }
+
 private:
    handle_type self_;
 };
@@ -176,6 +183,24 @@ namespace detail {
    inline auto task_promise<T&>::get_return_object() noexcept -> task<T&> {
       return task<T&>{ std::coroutine_handle<task_promise>::from_promise(*this) };
    }
+
+   template<typename T>
+   struct remove_rvalue_reference {
+      using type = T;
+   };
+
+   template<typename T>
+   struct remove_rvalue_reference<T&&> {
+      using type = T;
+   };
+
+   template<typename T>
+   using remove_rvalue_reference_t = typename remove_rvalue_reference<T>::type;
+}
+
+template<typename A>
+auto make_task(A&& awaitable) -> task<detail::remove_rvalue_reference_t<await_result_t<A>>> {
+   co_return co_await std::move(awaitable);
 }
 
 E_CORO_NS_END

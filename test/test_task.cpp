@@ -178,4 +178,78 @@ namespace {
             co_return;
          }()));
    }
+
+   TEST_CASE("task<int> fmap pipe operator") {
+      using e_coro::task;
+      using e_coro::fmap;
+      using e_coro::sync_wait;
+      using e_coro::make_task;
+
+      auto one = [&]() -> task<int> {
+         co_return 1;
+      };
+
+      SECTION("r-value fmap / r-value lambda") {
+         auto t = one()
+                  | fmap([delta = 1](auto i) { return i + delta; });
+         REQUIRE(sync_wait(t) == 2);
+      }
+
+      SECTION("r-value fmap / l-value lambda") {
+         using namespace std::string_literals;
+
+         auto t = [&]
+         {
+            auto f = [prefix = "pfx"s](int x)
+            {
+               return prefix + std::to_string(x);
+            };
+
+            // Want to make sure that the resulting awaitable has taken
+            // a copy of the lambda passed to fmap().
+            return one() | fmap(f);
+         }();
+
+         REQUIRE(sync_wait(t) == "pfx1");
+      }
+
+      SECTION("l-value fmap / r-value lambda") {
+         using namespace std::string_literals;
+
+         auto t = [&] {
+            auto addprefix = fmap([prefix = "a really really long prefix that prevents small string optimisation"s](int x)
+                                  {
+                                     return prefix + std::to_string(x);
+                                  });
+
+            // Want to make sure that the resulting awaitable has taken
+            // a copy of the lambda passed to fmap().
+            return one() | addprefix;
+         }();
+
+         REQUIRE(sync_wait(t) == "a really really long prefix that prevents small string optimisation1");
+      }
+
+      SECTION("l-value fmap / l-value lambda") {
+         using namespace std::string_literals;
+
+         task<std::string> t;
+
+         {
+            auto lambda = [prefix = "a really really long prefix that prevents small string optimisation"s](int x) {
+               return prefix + std::to_string(x);
+            };
+
+            auto addprefix = fmap(lambda);
+
+            // Want to make sure that the resulting task has taken
+            // a copy of the lambda passed to fmap().
+            t = make_task(one() | addprefix);
+         }
+
+         REQUIRE(!t.is_ready());
+
+         REQUIRE(sync_wait(t) == "a really really long prefix that prevents small string optimisation1");
+      }
+   }
 }
