@@ -47,6 +47,7 @@ namespace detail {
       : sync_wait_task_promise_base<sync_wait_task_promise<R>> {
       using super = sync_wait_task_promise_base<sync_wait_task_promise<R>>;
       using value_type = std::remove_reference_t<R>;
+      using reference_type = R&&;
 
       auto get_return_object() noexcept {
          return super::handle_type::from_promise(*this);
@@ -57,8 +58,8 @@ namespace detail {
          return super::final_suspend();
       }
 
-      auto result() noexcept -> value_type&& {
-         return static_cast<value_type&&>(*result_);
+      auto result() noexcept -> reference_type {
+         return static_cast<reference_type>(*result_);
       }
 
       auto start(sync_wait_notifier&& notifier) noexcept {
@@ -88,9 +89,9 @@ namespace detail {
       }
    };
 
-   template<typename RESULT>
+   template<typename R>
    struct sync_wait_task final {
-      using promise_type = sync_wait_task_promise<RESULT>;
+      using promise_type = sync_wait_task_promise<R>;
       using handle_type = std::coroutine_handle<promise_type>;
 
       sync_wait_task(handle_type self) noexcept
@@ -129,9 +130,9 @@ namespace detail {
    }
 }
 
-template<typename AWAITABLE>
-auto sync_wait(AWAITABLE&& awaitable) noexcept -> decltype(auto) {
-   auto task = detail::make_sync_wait_task(std::forward<AWAITABLE>(awaitable));
+template<typename T>
+auto sync_wait(T&& awaitable) noexcept -> await_result_t<T> {
+   auto task = detail::make_sync_wait_task(std::forward<T>(awaitable));
 
    detail::sync_wait_notifier notifier;
    auto future = notifier.get_future();
