@@ -5,11 +5,10 @@
 #ifndef E_CORO_TASK_H
 #define E_CORO_TASK_H
 
-#include <e-coro/e_coro_ns.h>
+#include <e-coro/core/awaitable_trait.h>
 #include <coroutine>
 #include <concepts>
 #include <optional>
-#include "awaitable_trait.h"
 
 E_CORO_NS_BEGIN
 
@@ -21,11 +20,13 @@ namespace detail {
       friend struct final_awaitable;
       struct final_awaitable {
          auto await_ready() const noexcept { return false; }
-         template<typename P> requires std::is_base_of_v<task_promise_base, P>
+
+         template<std::derived_from<task_promise_base> P>
          auto await_suspend(std::coroutine_handle<P> self) noexcept {
             // i'm done here, return the execution to caller.
             return self.promise().caller_;
          }
+         
          auto await_resume() noexcept {}
       };
 
@@ -199,8 +200,8 @@ namespace detail {
 }
 
 template<typename A>
-auto make_task(A&& awaitable) -> task<detail::remove_rvalue_reference_t<await_result_t<A>>> {
-   co_return co_await std::move(awaitable);
+auto make_task(A awaitable) -> task<detail::remove_rvalue_reference_t<await_result_t<A>>> {
+   co_return co_await static_cast<A&&>(awaitable);
 }
 
 E_CORO_NS_END
