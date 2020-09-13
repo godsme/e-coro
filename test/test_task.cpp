@@ -92,10 +92,37 @@ namespace {
          auto& result = e_coro::sync_wait(t);
 
          REQUIRE(counted::active_count() == 1);
-         REQUIRE(result->id == 0);
+         REQUIRE(result.id == 0);
       }
 
       REQUIRE(counted::active_count() == 0);
+   }
+
+   TEST_CASE("task of reference type")
+   {
+      int value = 3;
+      auto f = [&]() -> e_coro::task<int&> {
+         co_return value;
+      };
+
+      e_coro::sync_wait([&]() -> e_coro::task<> {
+          {
+             decltype(auto) result = co_await f();
+             static_assert(
+                std::is_same<decltype(result), int&>::value,
+                "co_await r-value reference of task<int&> should result in an int&");
+             REQUIRE(&result == &value);
+          }
+
+          {
+             auto t = f();
+             decltype(auto) result = co_await t;
+             static_assert(
+                std::is_same<decltype(result), int&>::value,
+                "co_await l-value reference of task<int&> should result in an int&");
+             REQUIRE(&result == &value);
+          }
+       }());
    }
 
 }

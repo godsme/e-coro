@@ -53,12 +53,12 @@ namespace detail {
 
       auto get_return_object() noexcept -> task<T>;
 
-      auto result() & noexcept -> std::optional<T>& {
-         return value_;
+      auto result() & noexcept -> T& {
+         return *value_;
       }
 
-      auto result() && noexcept -> std::optional<T>&& {
-         return std::move(value_);
+      auto result() && noexcept -> T&& {
+         return std::move(*value_);
       }
 
    private:
@@ -66,10 +66,26 @@ namespace detail {
    };
 
    template<>
-   struct task_promise<void> : task_promise_base {
+   struct task_promise<void> final : task_promise_base {
       auto return_void() noexcept {}
       auto get_return_object() noexcept -> task<void>;
       auto result() noexcept {}
+   };
+
+   template<typename T>
+   struct task_promise<T&> final : task_promise_base {
+      task<T&> get_return_object() noexcept;
+
+      auto return_value(T& value) noexcept {
+         m_value = std::addressof(value);
+      }
+
+      auto result() noexcept -> T& {
+         return *m_value;
+      }
+
+   private:
+      T* m_value;
    };
 }
 
@@ -152,8 +168,13 @@ namespace detail {
       return task<T>{ std::coroutine_handle<task_promise>::from_promise(*this) };
    }
 
-   inline task<void> task_promise<void>::get_return_object() noexcept {
+   inline auto task_promise<void>::get_return_object() noexcept -> task<void> {
       return task<void>{ std::coroutine_handle<task_promise>::from_promise(*this) };
+   }
+
+   template<typename T>
+   inline auto task_promise<T&>::get_return_object() noexcept -> task<T&> {
+      return task<T&>{ std::coroutine_handle<task_promise>::from_promise(*this) };
    }
 }
 

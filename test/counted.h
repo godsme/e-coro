@@ -31,19 +31,19 @@ struct counted {
    }
 
    counted() : id(default_construction_count++) {
-      std::cout << "default cons: " << construction_count() << ":" << destruction_count << std::endl;
+      //std::cout << "default cons: " << construction_count() << ":" << destruction_count << std::endl;
    }
    counted(counted const& other) : id(other.id) {
       ++copy_construction_count;
-      std::cout << "copy cons: " << construction_count() << ":" << destruction_count << std::endl;
+      //std::cout << "copy cons: " << construction_count() << ":" << destruction_count << std::endl;
    }
    counted(counted&& other) : id(other.id) {
       ++move_construction_count; other.id = -1;
-      std::cout << "move cons: " << construction_count() << ":" << destruction_count << std::endl;
+      //std::cout << "move cons: " << construction_count() << ":" << destruction_count << std::endl;
    }
    ~counted() {
       ++destruction_count;
-      std::cout << " dtor: " << construction_count() << ":" << destruction_count << std::endl;
+      //std::cout << " dtor: " << construction_count() << ":" << destruction_count << std::endl;
    }
 };
 
