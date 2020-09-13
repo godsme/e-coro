@@ -26,7 +26,7 @@ namespace detail {
             // i'm done here, return the execution to caller.
             return self.promise().caller_;
          }
-         
+
          auto await_resume() noexcept {}
       };
 
@@ -49,8 +49,10 @@ namespace detail {
 
    template<typename T>
    struct task_promise : task_promise_base {
-      auto return_value(T&& value) noexcept {
-         value_.template emplace<T>(std::forward<T>(value));
+      
+      template<std::convertible_to<T> R>
+      auto return_value(R&& value) noexcept {
+         value_.template emplace<T>(std::forward<R>(value));
       }
 
       auto get_return_object() noexcept -> task<T>;
