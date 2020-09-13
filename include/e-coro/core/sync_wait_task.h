@@ -31,7 +31,7 @@ namespace detail {
          struct completion_notifier {
             bool await_ready() const noexcept { return false; }
             void await_suspend(handle_type self) const noexcept {
-               self.promise().notifier_.set_value();
+               self.promise().notifier_->set_value();
             }
             void await_resume() noexcept {}
          };
@@ -39,7 +39,7 @@ namespace detail {
       }
 
    protected:
-      sync_wait_notifier notifier_;
+      sync_wait_notifier* notifier_;
    };
 
    template<typename R>
@@ -53,7 +53,7 @@ namespace detail {
          return super::handle_type::from_promise(*this);
       }
 
-      auto yield_value(R&& result) noexcept {
+      auto yield_value(reference_type result) noexcept {
          result_ = std::addressof(result);
          return super::final_suspend();
       }
@@ -62,8 +62,8 @@ namespace detail {
          return static_cast<reference_type>(*result_);
       }
 
-      auto start(sync_wait_notifier&& notifier) noexcept {
-         super::notifier_ = std::move(notifier);
+      auto start(sync_wait_notifier& notifier) noexcept {
+         super::notifier_ = &notifier;
          super::handle_type::from_promise(*this).resume();
       }
 
@@ -83,8 +83,8 @@ namespace detail {
       void return_void() noexcept {}
       auto result() noexcept {}
 
-      auto start(sync_wait_notifier &&notifier) noexcept {
-         super::notifier_ = std::move(notifier);
+      auto start(sync_wait_notifier& notifier) noexcept {
+         super::notifier_ = &notifier;
          super::handle_type::from_promise(*this).resume();
       }
    };
@@ -107,8 +107,8 @@ namespace detail {
       sync_wait_task(sync_wait_task const &) noexcept = delete;
       sync_wait_task &operator=(sync_wait_task const &) noexcept = delete;
 
-      void start(sync_wait_notifier &&notifier) noexcept {
-         self_.promise().start(std::move(notifier));
+      void start(sync_wait_notifier& notifier) noexcept {
+         self_.promise().start(notifier);
       }
 
       auto result() noexcept -> decltype(auto) {
@@ -136,7 +136,7 @@ auto sync_wait(T&& awaitable) noexcept -> await_result_t<T> {
 
    detail::sync_wait_notifier notifier;
    auto future = notifier.get_future();
-   task.start(std::move(notifier));
+   task.start(notifier);
    future.wait();
 
    return task.result();

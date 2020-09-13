@@ -87,15 +87,15 @@ namespace {
 
       {
          auto t = f();
-         CHECK(counted::active_count() == 0);
+         REQUIRE(counted::active_count() == 0);
 
          auto& result = e_coro::sync_wait(t);
 
-         CHECK(counted::active_count() == 1);
-         CHECK(result->id == 0);
+         REQUIRE(counted::active_count() == 1);
+         REQUIRE(result->id == 0);
       }
 
-      CHECK(counted::active_count() == 0);
+      REQUIRE(counted::active_count() == 0);
    }
 
 }
