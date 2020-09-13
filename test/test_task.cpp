@@ -7,6 +7,7 @@
 #include <e-coro/core/sync_wait_task.h>
 #include <e-coro/core/when_all_ready.h>
 #include <e-coro/core/single_consumer_event.h>
+#include <e-coro/core/fmap.h>
 #include "counted.h"
 
 namespace {
@@ -125,4 +126,56 @@ namespace {
        }());
    }
 
+   TEST_CASE("passing parameter by value to task coroutine calls move-constructor exactly once") {
+      counted::reset_counts();
+
+      auto f = [](counted) -> e_coro::task<> {
+         co_return;
+      };
+
+      counted c;
+
+      REQUIRE(counted::active_count() == 1);
+      REQUIRE(counted::default_construction_count == 1);
+      REQUIRE(counted::copy_construction_count == 0);
+      REQUIRE(counted::move_construction_count == 0);
+      REQUIRE(counted::destruction_count == 0);
+
+      {
+         auto t = f(c);
+
+         // Should have called copy-constructor to pass a copy of 'c' into f by value.
+         REQUIRE(counted::copy_construction_count == 1);
+
+         // Inside f it should have move-constructed parameter into coroutine frame variable
+         // WARN_MESSAGE(counted::move_construction_count == 1,
+
+         // Active counts should be the instance 'c' and the instance captured in coroutine frame of 't'.
+         REQUIRE(counted::active_count() == 2);
+      }
+
+      REQUIRE(counted::active_count() == 1);
+   }
+
+   TEST_CASE("task<void> fmap pipe operator") {
+      using e_coro::fmap;
+
+      e_coro::single_consumer_event event;
+
+      auto f = [&]() -> e_coro::task<> {
+         co_await event;
+         co_return;
+      };
+
+      auto t = f() | fmap([] { return 123; });
+
+      e_coro::sync_wait(e_coro::when_all_ready(
+         [&]() -> e_coro::task<> {
+            CHECK(co_await t == 123);
+         }(),
+         [&]() -> e_coro::task<> {
+            event.set();
+            co_return;
+         }()));
+   }
 }

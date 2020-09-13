@@ -8,7 +8,7 @@
 #include <e-coro/e_coro_ns.h>
 #include <coroutine>
 #include <concepts>
-#include <variant>
+#include <optional>
 
 E_CORO_NS_BEGIN
 

@@ -13,7 +13,6 @@
 E_CORO_NS_BEGIN
 
 namespace detail {
-
    template<typename T>
    struct is_coroutine_handle : std::false_type {};
 
@@ -25,28 +24,29 @@ namespace detail {
 
    template<typename T>
    concept valid_await_suspend_result =
-      std::is_void_v<T> ||
-      std::is_same_v<bool, T> ||
-      is_coroutine_handle_v<T>;
+   std::is_void_v<T> ||
+   std::is_same_v<bool, T> ||
+   is_coroutine_handle_v<T>;
+}
 
-   template<typename T>
-   concept awaiter_concept = requires(T value) {
-      { value.await_ready() } -> std::same_as<bool>;
-      { value.await_suspend(std::declval<std::coroutine_handle<>>()) } -> valid_await_suspend_result;
-      { value.await_resume() };
-   };
+template<typename T>
+concept awaiter_concept = requires(T value) {
+   { value.await_ready() } -> std::same_as<bool>;
+   { value.await_suspend(std::declval<std::coroutine_handle<>>()) } -> detail::valid_await_suspend_result;
+   { value.await_resume() };
+};
 
-   template<typename T>
-   concept has_co_await = requires(T&& value) {
-      static_cast<T&&>(value).operator co_await();
-   };
+template<typename T>
+concept has_co_await = requires(T&& value) {
+   static_cast<T&&>(value).operator co_await();
+};
 
-   template<typename T>
-   concept has_global_co_await = requires(T&& value) {
-      operator co_await(static_cast<T&&>(value));
-   };
+template<typename T>
+concept has_global_co_await = requires(T&& value) {
+   operator co_await(static_cast<T&&>(value));
+};
 
-
+namespace detail {
    template<has_co_await T>
    auto get_awaiter(T&& value) {
       return static_cast<T&&>(value).operator co_await();
@@ -62,6 +62,11 @@ namespace detail {
       return value;
    }
 }
+
+template<typename T>
+concept awaitable_concept =
+has_co_await<T> || has_global_co_await<T> || awaiter_concept<T>;
+
 
 template<typename T>
 struct awaitable_traits {

@@ -20,4 +20,4 @@ include_directories(
 
 add_executable(e_coro_test
         third-party/catch.hpp
-        test/catch.cpp test/test_task.cpp include/e-coro/core/sync_wait_task.h include/e-coro/core/awaitable_trait.h include/e-coro/core/detail/when_all_ready_awaitable.h include/e-coro/core/detail/when_all_counter.h include/e-coro/core/detail/when_all_task.h include/e-coro/core/when_all_ready.h include/e-coro/core/single_consumer_event.h test/counted.h test/counted.cpp)
+        test/catch.cpp test/test_task.cpp include/e-coro/core/sync_wait_task.h include/e-coro/core/awaitable_trait.h include/e-coro/core/detail/when_all_ready_awaitable.h include/e-coro/core/detail/when_all_counter.h include/e-coro/core/detail/when_all_task.h include/e-coro/core/when_all_ready.h include/e-coro/core/single_consumer_event.h test/counted.h test/counted.cpp include/e-coro/core/fmap.h)
