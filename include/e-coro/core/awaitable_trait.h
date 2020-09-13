@@ -63,12 +63,20 @@ namespace detail {
    }
 }
 
-
 template<typename T>
 struct awaitable_traits {
    using awaiter_t = decltype(detail::get_awaiter(std::declval<T>()));
    using await_result_t = decltype(std::declval<awaiter_t>().await_resume());
 };
+
+template<typename T>
+using await_result_t = typename awaitable_traits<T>::await_result_t;
+
+template<typename T>
+concept void_awaitable = std::is_void_v<await_result_t<T>>;
+
+template<typename T>
+concept non_void_awaitable = !void_awaitable<T>;
 
 E_CORO_NS_END
 

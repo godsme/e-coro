@@ -123,21 +123,15 @@ namespace detail {
       handle_type self_;
    };
 
-   template<typename T>
-   concept void_awaitable = std::is_void_v<typename awaitable_traits<T>::await_result_t>;
 
-   template<typename T>
-   concept non_void_awaitable = !void_awaitable<T>;
-
-   template<void_awaitable AWAITABLE>
-   auto make_sync_wait_task(AWAITABLE &&awaitable) -> sync_wait_task<void> {
-      co_await std::forward<AWAITABLE>(awaitable);
+   template<void_awaitable T>
+   auto make_sync_wait_task(T &&awaitable) -> sync_wait_task<void> {
+      co_await std::forward<T>(awaitable);
    }
 
-   template<non_void_awaitable AWAITABLE>
-   auto make_sync_wait_task(AWAITABLE &&awaitable)
-      -> sync_wait_task<typename awaitable_traits<AWAITABLE>::await_result_t> {
-      co_yield co_await std::forward<AWAITABLE>(awaitable);
+   template<non_void_awaitable T>
+   auto make_sync_wait_task(T &&awaitable) -> sync_wait_task<await_result_t<T>> {
+      co_yield co_await std::forward<T>(awaitable);
    }
 }
 
