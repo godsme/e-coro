@@ -13,10 +13,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wnon-virtual-dtor \
 include_directories(
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/third-party"
+        "${CMAKE_CURRENT_SOURCE_DIR}/test"
 )
 
 #add_library(e_coro include/e-coro/core/task.h include/e-coro/e_coro_ns.h)
 
 add_executable(e_coro_test
         third-party/catch.hpp
-        test/catch.cpp test/test_task.cpp include/e-coro/core/sync_wait_task.h include/e-coro/core/awaitable_trait.h include/e-coro/core/detail/when_all_ready_awaitable.h include/e-coro/core/detail/when_all_counter.h include/e-coro/core/detail/when_all_task.h include/e-coro/core/when_all_ready.h include/e-coro/core/single_consumer_event.h)
+        test/catch.cpp test/test_task.cpp include/e-coro/core/sync_wait_task.h include/e-coro/core/awaitable_trait.h include/e-coro/core/detail/when_all_ready_awaitable.h include/e-coro/core/detail/when_all_counter.h include/e-coro/core/detail/when_all_task.h include/e-coro/core/when_all_ready.h include/e-coro/core/single_consumer_event.h test/counted.h test/counted.cpp)

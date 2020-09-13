@@ -37,47 +37,39 @@ namespace detail {
          return final_awaitable{};
       }
 
-      auto save_caller(std::coroutine_handle<> caller) {
+      auto save_caller(std::coroutine_handle<> caller) noexcept {
          caller_ = caller;
       }
+
    private:
       std::coroutine_handle<> caller_;
    };
 
    template<typename T>
    struct task_promise : task_promise_base {
-      template<std::convertible_to<T> V>
-      auto return_value(V&& value) noexcept {
-         value_ = std::forward<V>(value);
+      auto return_value(T&& value) noexcept {
+         value_.template emplace<T>(std::forward<T>(value));
       }
 
       auto get_return_object() noexcept -> task<T>;
 
-      auto result() & noexcept -> std::optional<T&> {
-         if(value_.index() == 1) {
-            return std::get<1>(value_);
-         } else {
-            return std::nullopt;
-         }
+      auto result() & noexcept -> std::optional<T>& {
+         return value_;
       }
 
-      auto result() && noexcept -> std::optional<T&&> {
-         if(value_.index() == 1) {
-            return std::move(std::get<1>(value_));
-         } else {
-            return std::nullopt;
-         }
+      auto result() && noexcept -> std::optional<T>&& {
+         return std::move(value_);
       }
 
    private:
-      std::variant<std::monostate, T> value_;
+      std::optional<T> value_;
    };
 
    template<>
    struct task_promise<void> : task_promise_base {
       auto return_void() noexcept {}
       auto get_return_object() noexcept -> task<void>;
-      auto result() {}
+      auto result() noexcept {}
    };
 }
 
@@ -108,26 +100,24 @@ private:
    };
 
 public:
-   explicit task(handle_type handle)
+   explicit task(handle_type handle) noexcept
       : self_{handle}
    {}
 
-   task(task&& rhs) : self_{std::move(rhs.self_)} {
+   task(task&& rhs) noexcept : self_{std::move(rhs.self_)} {
       rhs.self_ = nullptr;
    }
 
-   task(task const&) = delete;
-   task& operator=(task const&) = delete;
+   task(task const&) noexcept = delete;
+   task& operator=(task const&) noexcept = delete;
 
-   auto operator=(task rhs) -> task& {
+   auto operator=(task&& rhs) noexcept -> task& {
       *this = std::move(rhs);
       return *this;
    }
 
-   ~task() {
-      if(self_) {
-         self_.destroy();
-      }
+   ~task() noexcept {
+      if(self_) self_.destroy();
    }
 
    // caller awaits me, and i'm a lvalue-reference
@@ -138,7 +128,6 @@ public:
             return awaitable_base::self_.promise().result();
          }
       };
-
       return awaitable{ self_ };
    }
 
@@ -150,10 +139,8 @@ public:
             return std::move(awaitable_base::self_.promise()).result();
          }
       };
-
       return awaitable{ self_ };
    }
-
 
 private:
    handle_type self_;
