@@ -103,7 +103,7 @@ struct fmap_transform {
 };
 
 template<typename F>
-inline auto fmap(F&& func) {
+inline auto fmap(F&& func) -> fmap_transform<F> {
    return fmap_transform<F>{ std::forward<F>(func) };
 }
 

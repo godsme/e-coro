@@ -49,7 +49,7 @@ namespace detail {
 
    template<typename T>
    struct task_promise : task_promise_base {
-      
+
       template<std::convertible_to<T> R>
       auto return_value(R&& value) noexcept {
          value_.template emplace<T>(std::forward<R>(value));
@@ -134,7 +134,7 @@ public:
    task& operator=(task const&) noexcept = delete;
 
    auto operator=(task&& rhs) noexcept -> task& {
-      *this = std::move(rhs);
+      std::swap(rhs.self_, self_);
       return *this;
    }
 
@@ -164,7 +164,7 @@ public:
       return awaitable{ self_ };
    }
 
-   auto is_ready() const noexcept {
+   auto is_ready() const noexcept -> bool {
       return !self_ || self_.done();
    }
 
@@ -202,7 +202,7 @@ namespace detail {
 }
 
 template<typename A>
-auto make_task(A awaitable) -> task<detail::remove_rvalue_reference_t<await_result_t<A>>> {
+auto make_task(A awaitable) -> task<await_result_t<A>> {
    co_return co_await static_cast<A&&>(awaitable);
 }
 

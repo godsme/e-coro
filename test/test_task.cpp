@@ -247,7 +247,7 @@ namespace {
             t = make_task(one() | addprefix);
          }
 
-         REQUIRE(!t.is_ready());
+         CHECK(!t.is_ready());
 
          REQUIRE(sync_wait(t) == "a really really long prefix that prevents small string optimisation1");
       }
