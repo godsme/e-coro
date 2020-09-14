@@ -24,29 +24,29 @@ namespace detail {
       using awaiter_t = typename awaitable_traits<A&&>::awaiter_t;
 
       fmap_awaiter(F&& func, A&& awaitable)
-         : func_{static_cast<F&&>(func)}
-         , awaiter_{detail::get_awaiter(static_cast<A&&>(awaitable))}
+         : func_{std::forward<F>(func)}
+         , awaiter_{detail::get_awaiter(std::forward<A>(awaitable))}
       {}
 
       auto await_ready() {
-         return static_cast<awaiter_t&&>(awaiter_).await_ready();
+         return std::forward<awaiter_t>(awaiter_).await_ready();
       }
 
       template<typename P>
       auto await_suspend(std::coroutine_handle<P> self) -> decltype(auto) {
-         return static_cast<awaiter_t&&>(awaiter_).await_suspend(std::move(self));
+         return std::forward<awaiter_t>(awaiter_).await_suspend(std::move(self));
       }
 
       auto await_resume() -> decltype(auto)
       requires await_resume_return_void<awaiter_t> {
-         static_cast<awaiter_t&&>(awaiter_).await_resume();
-         return std::invoke(static_cast<F&&>(func_));
+         std::forward<awaiter_t>(awaiter_).await_resume();
+         return std::invoke(std::forward<F>(func_));
       }
 
       auto await_resume() -> decltype(auto)
       requires (!await_resume_return_void<awaiter_t>) {
-         return std::invoke(static_cast<F&&>(func_),
-                            static_cast<awaiter_t&&>(awaiter_).await_resume());
+         return std::invoke(std::forward<F>(func_),
+                            std::forward<awaiter_t>(awaiter_).await_resume());
       }
 
    private:
@@ -58,16 +58,16 @@ namespace detail {
    concept constructible_to = std::constructible_from<F, A>;
 
    template<typename F, typename A>
-   struct fmap_awaitable {
-      static_assert(!std::is_lvalue_reference_v<F>);
-      static_assert(!std::is_lvalue_reference_v<A>);
+   struct fmap_awaitable final {
+      static_assert(!std::is_reference_v<F>);
+      static_assert(!std::is_reference_v<A>);
 
       template<
          constructible_to<F> F_ARG,
          constructible_to<A> A_ARG>
       explicit fmap_awaitable(F_ARG&& func, A_ARG&& awaitable)
-         : func_(std::forward<F_ARG>(func))
-         , awaitable_(std::forward<A_ARG>(awaitable))
+         : func_{std::forward<F_ARG>(func)}
+         , awaitable_{std::forward<A_ARG>(awaitable)}
       {}
 
       auto operator co_await() const & {

@@ -38,28 +38,28 @@ concept awaiter_concept = requires(T value) {
 
 template<typename T>
 concept has_co_await = requires(T&& value) {
-   static_cast<T&&>(value).operator co_await();
+   std::forward<T>(value).operator co_await();
 };
 
 template<typename T>
 concept has_global_co_await = requires(T&& value) {
-   operator co_await(static_cast<T&&>(value));
+   operator co_await(std::forward<T>(value));
 };
 
 namespace detail {
    template<has_co_await T>
-   auto get_awaiter(T&& value) {
-      return static_cast<T&&>(value).operator co_await();
+   auto get_awaiter(T&& value) -> decltype(std::forward<T>(value).operator co_await()) {
+      return std::forward<T>(value).operator co_await();
    }
 
    template<has_global_co_await T>
-   auto get_awaiter(T&& value) {
-      return operator co_await(static_cast<T&&>(value));
+   auto get_awaiter(T&& value) -> decltype(operator co_await(std::forward<T>(value))) {
+      return operator co_await(std::forward<T>(value));
    }
 
    template<awaiter_concept T>
-   auto get_awaiter(T&& value) {
-      return value;
+   auto get_awaiter(T&& value) -> T&& {
+      return std::forward<T>(value);
    }
 }
 
