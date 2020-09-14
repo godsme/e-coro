@@ -29,23 +29,24 @@ namespace detail {
       {}
 
       auto await_ready() {
-         return awaiter_.await_ready();
+         return static_cast<awaiter_t&&>(awaiter_).await_ready();
       }
 
       template<typename P>
       auto await_suspend(std::coroutine_handle<P> self) -> decltype(auto) {
-         return awaiter_.await_suspend(std::move(self));
+         return static_cast<awaiter_t&&>(awaiter_).await_suspend(std::move(self));
       }
 
       auto await_resume() -> decltype(auto)
       requires await_resume_return_void<awaiter_t> {
-         awaiter_.await_resume();
-         return func_();
+         static_cast<awaiter_t&&>(awaiter_).await_resume();
+         return std::invoke(static_cast<F&&>(func_));
       }
 
       auto await_resume() -> decltype(auto)
       requires (!await_resume_return_void<awaiter_t>) {
-         return func_(awaiter_.await_resume());
+         return std::invoke(static_cast<F&&>(func_),
+                            static_cast<awaiter_t&&>(awaiter_).await_resume());
       }
 
    private:
